@@ -1,24 +1,35 @@
 import { useEffect, useRef } from 'react';
 
-const blobConfigs = [
-  { rx: 285, ry: 210, opacity: 0.42, pace: 0.82 },
-  { rx: 205, ry: 160, opacity: 0.34, pace: 1.16 },
-  { rx: 165, ry: 125, opacity: 0.39, pace: 1.28 },
-  { rx: 300, ry: 220, opacity: 0.44, pace: 0.76 },
-  { rx: 135, ry: 105, opacity: 0.31, pace: 1.12 },
-  { rx: 260, ry: 190, opacity: 0.4, pace: 0.94 },
-  { rx: 185, ry: 150, opacity: 0.36, pace: 1.24 },
-  { rx: 315, ry: 230, opacity: 0.45, pace: 0.8 },
-  { rx: 150, ry: 115, opacity: 0.32, pace: 1.08 },
-  { rx: 230, ry: 175, opacity: 0.38, pace: 0.9 },
-];
+const stableRandom = (seed) => {
+  const value = Math.sin((seed + 1) * 127.1) * 43758.5453;
+  return value - Math.floor(value);
+};
+
+const blobConfigs = Array.from({ length: 36 }, (_, index) => {
+  const sizeRoll = stableRandom(index);
+  const sizeWithinBand = stableRandom(index + 36);
+  const radius = sizeRoll < 0.18
+    ? 62 + sizeWithinBand * 22
+    : sizeRoll < 0.7
+      ? 98 + sizeWithinBand * 40
+      : sizeRoll < 0.92
+        ? 142 + sizeWithinBand * 32
+        : 178 + sizeWithinBand * 27;
+
+  return {
+    rx: radius,
+    ry: radius * (0.68 + stableRandom(index + 72) * 0.18),
+    opacity: 0.28 + (index % 6) * 0.02,
+    pace: 0.76 + (index % 7) * 0.08,
+  };
+});
 
 const ambientStyles = `
   @media (max-width: 1023px) {
-    .ambient-goo-blob:nth-of-type(n + 9) { display: none; }
+    .ambient-goo-blob:nth-of-type(n + 33) { display: none; }
   }
   @media (max-width: 639px) {
-    .ambient-goo-blob:nth-of-type(n + 7) { display: none; }
+    .ambient-goo-blob:nth-of-type(n + 25) { display: none; }
   }
 `;
 

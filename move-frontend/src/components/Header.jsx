@@ -54,7 +54,7 @@ export default function Header() {
               end={path === '/'}
               className={({ isActive }) =>
                 `flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  isActive ? 'bg-[#85f8c4] text-[#002114] shadow-sm' : 'text-[#3d4a42] hover:bg-[#e5eeff]'
+                  isActive ? 'bg-primary-fixed text-[#002114] shadow-sm' : 'text-[#3d4a42] hover:bg-[#e5eeff]'
                 }`
               }
             >

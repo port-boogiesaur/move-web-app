@@ -1,12 +1,10 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { IoSearch, IoCalendarOutline, IoAddCircleOutline, IoPeopleOutline, IoTrophyOutline, IoArrowForward, IoHeartOutline, IoStatsChartOutline } from 'react-icons/io5';
 import { useTable } from '../data/db';
 import { SportChips, VenueCard, Btn, inputCls } from '../components/ui';
 
-// Uses the first photo found in src/assets for the hero (jpg, png or webp).
-const heroImages = Object.values(import.meta.glob('../assets/*.{jpg,jpeg,png,webp}', { eager: true, import: 'default' }));
-const hero = heroImages[0];
+const Hero3DModel = lazy(() => import('../components/Hero3DModel'));
 
 const actions = [
   { to: '/book', label: 'Book Court', Icon: IoCalendarOutline, tint: 'bg-[#85f8c4]' },
@@ -37,8 +35,8 @@ export default function Discover() {
 
         <SportChips value={sport} onChange={setSport} />
 
-        <section className="-mt-2 mb-4 grid overflow-hidden rounded-3xl bg-white shadow-lg shadow-[#0b1c30]/5 ring-1 ring-[#0b1c30]/5 md:grid-cols-[1.15fr_0.85fr]">
-          <div className="flex flex-col justify-center gap-2.5 p-5 md:p-6">
+        <section className="-mt-2 mb-4 grid overflow-hidden rounded-3xl bg-transparent shadow-lg shadow-[#0b1c30]/5 ring-1 ring-[#0b1c30]/5 md:grid-cols-[1.15fr_0.85fr]">
+          <div className="flex flex-col justify-center gap-2.5 bg-white p-5 md:p-6">
             <p className="text-sm font-bold text-[#006948]">Cebu weekend showdown · 40+ matches</p>
             <h1 className="bg-gradient-to-r from-[#0b1c30] via-[#0b1c30] to-[#006948] bg-clip-text text-3xl font-extrabold leading-tight tracking-tight text-transparent md:text-4xl">Open Play Weekend in Cebu</h1>
             <p className="text-sm leading-5 text-[#3d4a42]">Pickleball, padel and basketball runs forming fast across Metro Cebu. Join solo or with a partner.</p>
@@ -49,8 +47,14 @@ export default function Discover() {
             </div>
             <div><Btn to="/open-play" className="px-5 py-2.5">Browse Matches <IoArrowForward /></Btn></div>
           </div>
-          <div className="aspect-video bg-gradient-to-br from-[#006948] to-[#85f8c4]">
-            {hero && <img src={hero} alt="Players on a pickleball court" className="h-full w-full object-cover" />}
+          <div className="relative aspect-[4/3] min-w-0 overflow-hidden rounded-r-[28px] bg-transparent p-3 shadow-[0_8px_20px_rgba(0,105,72,0.22),inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-3px_0_rgba(0,105,72,0.24)] md:aspect-auto md:min-h-[330px]">
+            <div className="relative h-full w-full overflow-hidden rounded-[16px] bg-transparent shadow-[inset_0_2px_5px_rgba(0,33,20,0.36),inset_0_1px_0_rgba(255,255,255,0.2)]">
+              <div className="absolute inset-0 bg-transparent sm:inset-2">
+                <Suspense fallback={null}>
+                  <Hero3DModel />
+                </Suspense>
+              </div>
+            </div>
           </div>
         </section>
 
