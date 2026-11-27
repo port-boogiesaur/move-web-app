@@ -2,19 +2,34 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { IoChevronBack, IoSend, IoChatbubblesOutline } from 'react-icons/io5';
 import { useTable } from '../data/db';
-import { useThreads, useMessages, useTyping, sendMessage, markRead, setOpenThread, useDirectUnread } from '../data/chat';
+import { useThreads, useConversationWith, useMessages, sendMessage, markRead, useDirectUnread } from '../data/chat';
 import { useRooms, useRoomMessages, sendRoomMessage, markRoomRead, setOpenRoom, useRoomUnread } from '../data/rooms';
 import { useProfile } from '../data/db';
-import { Avatar, Btn, sportOf, fmtDate, fmtTime, SportIcon } from '../components/ui';
+import { Avatar, Btn, fmtDate, fmtTime, SportIcon } from '../components/ui';
 
 const clock = (iso) => new Date(iso).toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' });
 
 // Shared conversation view for direct chats and game rooms.
-function ThreadView({ header, messages, typing, typingLabel, onSend, showAuthor, note, emptyText }) {
+function ThreadView({ header, messages, typing, typingLabel, onSend, showAuthor, note, emptyText, loading, error }) {
   const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
   const endRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages.length, typing]);
-  const submit = (e) => { e.preventDefault(); onSend(text); setText(''); };
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!text.trim()) return;
+    setSending(true);
+    setSendError('');
+    try {
+      await onSend(text);
+      setText('');
+    } catch (requestError) {
+      setSendError(requestError.message);
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -24,7 +39,9 @@ function ThreadView({ header, messages, typing, typingLabel, onSend, showAuthor,
       </div>
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-[#f8f9ff] px-3 py-4 md:px-4">
         <p className="mx-auto mb-2 max-w-xs rounded-full bg-[#e5eeff] px-3 py-1 text-center text-[11px] font-semibold text-[#565e74]">{note}</p>
-        {messages.length === 0 && <p className="py-10 text-center text-sm text-[#565e74]">{emptyText}</p>}
+        {(error || sendError) && <p role="alert" className="mx-auto max-w-lg rounded-xl bg-[#ffdad6] px-3 py-2 text-center text-sm font-semibold text-[#93000a]">{error || sendError}</p>}
+        {loading && messages.length === 0 && <p className="py-10 text-center text-sm text-[#565e74]">Loading messages…</p>}
+        {!loading && messages.length === 0 && <p className="py-10 text-center text-sm text-[#565e74]">{emptyText}</p>}
         {messages.map((m) => (
           <div key={m.id} className={`flex ${m.from === 'me' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm shadow-sm ${m.from === 'me' ? 'rounded-br-md bg-gradient-to-b from-[#00855d] to-[#006948] text-white' : 'rounded-bl-md bg-white text-[#0b1c30]'}`}>
@@ -46,7 +63,7 @@ function ThreadView({ header, messages, typing, typingLabel, onSend, showAuthor,
       <form onSubmit={submit} className="flex items-center gap-2 border-t border-[#e5eeff] bg-white p-3">
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={500} placeholder="Write a message…" aria-label="Message"
           className="min-w-0 flex-1 rounded-full border border-[#bccac0] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#006948] focus:ring-2 focus:ring-[#85f8c4]" />
-        <button type="submit" disabled={!text.trim()} aria-label="Send" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#006948] text-white transition hover:bg-[#00855d] active:scale-90 disabled:opacity-40">
+        <button type="submit" disabled={!text.trim() || sending} aria-label="Send" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#006948] text-white transition hover:bg-[#00855d] active:scale-90 disabled:opacity-40">
           <IoSend size={18} />
         </button>
       </form>
@@ -55,25 +72,33 @@ function ThreadView({ header, messages, typing, typingLabel, onSend, showAuthor,
 }
 
 function DirectThread({ playerId }) {
-  const player = useTable('players').find((p) => p.id === playerId);
-  const messages = useMessages(playerId);
-  const typing = useTyping(playerId);
+  const { conversation, loading: conversationLoading, error: conversationError } = useConversationWith(playerId);
+  const { messages, loading: messagesLoading, error: messagesError } = useMessages(conversation?.id);
   const unread = messages.filter((m) => m.from === 'them' && !m.read).length;
-  useEffect(() => { setOpenThread(playerId); return () => setOpenThread(null); }, [playerId]);
-  useEffect(() => { if (unread) markRead(playerId); }, [unread, playerId]);
-  if (!player) return <div className="flex h-full items-center justify-center text-sm text-[#565e74]">Player not found.</div>;
+  const [readError, setReadError] = useState('');
+  useEffect(() => {
+    if (!unread || !conversation?.id) return undefined;
+    let active = true;
+    markRead(conversation.id).catch((requestError) => {
+      if (active) setReadError(requestError.message);
+    });
+    return () => { active = false; };
+  }, [unread, conversation?.id]);
+  if (conversationLoading) return <div className="flex h-full items-center justify-center text-sm text-[#565e74]">Opening conversation…</div>;
+  if (!conversation) return <div role="alert" className="flex h-full items-center justify-center px-6 text-center text-sm font-semibold text-[#ba1a1a]">{conversationError || 'Conversation unavailable.'}</div>;
+  const player = conversation.user;
   return (
     <ThreadView
       header={<>
-        <Avatar name={player.name} src={player.avatar} size={40} />
+        <Avatar name={player.name} src={player.profilePicture} size={40} />
         <div className="min-w-0">
           <p className="truncate font-bold leading-tight">{player.name}</p>
-          <p className="flex items-center gap-1.5 text-xs text-[#565e74]"><SportIcon sport={player.sport} size={13} /> {sportOf(player.sport).label} · {player.level}</p>
+          <p className="truncate text-xs text-[#565e74]">{player.bio || 'MOVE player'}</p>
         </div>
       </>}
-      messages={messages} typing={typing} typingLabel={`${player.name} is typing`}
-      onSend={(t) => sendMessage(playerId, t)}
-      note="Demo mode: messages stay on this device and your friends reply automatically."
+      messages={messages} loading={messagesLoading} error={messagesError || readError}
+      typing={false} onSend={(text) => sendMessage(conversation.id, text)}
+      note={`A private conversation with ${player.name}.`}
       emptyText={`No messages yet. Say hi to ${player.name.split(' ')[0]}.`}
     />
   );
@@ -115,7 +140,7 @@ function RoomThread({ matchId }) {
 
 export default function Chat() {
   const { playerId, matchId } = useParams();
-  const threads = useThreads();
+  const { threads, loading: threadsLoading, error: threadsError } = useThreads();
   const rooms = useRooms();
   const directUnread = useDirectUnread();
   const roomUnread = useRoomUnread();
@@ -133,7 +158,9 @@ export default function Chat() {
     </div>
   );
 
-  const direct = threads.length === 0 ? (
+  const direct = threadsLoading && threads.length === 0 ? (
+    <p className="px-6 py-12 text-center text-sm text-[#565e74]">Loading friends…</p>
+  ) : threads.length === 0 ? (
     <div className="px-6 py-12 text-center">
       <IoChatbubblesOutline size={36} className="mx-auto text-[#6d7a72]" />
       <p className="mt-3 font-bold">No chats yet</p>
@@ -181,6 +208,7 @@ export default function Chat() {
         <div className={`flex min-h-0 flex-col border-[#e5eeff] md:border-r ${hasThread ? 'hidden md:flex' : ''}`}>
           <div className="px-4 pt-4"><h1 className="text-xl font-extrabold tracking-tight">Chats</h1></div>
           {tabs}
+          {threadsError && tab === 'direct' && <p role="alert" className="px-4 py-2 text-sm font-semibold text-[#ba1a1a]">{threadsError}</p>}
           <div className="min-h-0 flex-1 overflow-y-auto">{tab === 'direct' ? direct : roomList}</div>
         </div>
         <div className={`min-h-0 ${hasThread ? '' : 'hidden md:block'}`}>

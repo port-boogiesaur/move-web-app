@@ -1,6 +1,6 @@
 // Talks to the MOVE backend (move-backend). Venues and games come from the server and are
 // copied into the local tables, so pages keep reading them with useTable() like before.
-// Everything the backend has no endpoint for yet (friends, chat, tourneys, reviews...) stays local.
+// Features with backend endpoints use the API; remaining prototypes use local tables.
 import { db, getSession, setSession } from './db';
 
 const BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:5000/api').replace(/\/$/, '');
