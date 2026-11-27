@@ -1,55 +1,101 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { IoChatbubbleEllipsesOutline } from 'react-icons/io5';
-import { db, useTable } from '../data/db';
+import { api } from '../data/api';
 import { useSocial, sendRequest, acceptRequest } from '../data/social';
-import { Page, Card, Btn, Avatar, SportChips, Empty, inputCls, sportOf, SportIcon } from '../components/ui';
+import { Page, Card, Btn, Avatar, Empty, inputCls } from '../components/ui';
 
 export default function FindPlayers() {
-  const players = useTable('players');
-  const { statusOf, requestOf } = useSocial();
-  const [sport, setSport] = useState('all');
-  const [q, setQ] = useState('');
+  const { statusOf, requestOf, error: socialError } = useSocial();
+  const [query, setQuery] = useState('');
+  const [players, setPlayers] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [busyId, setBusyId] = useState('');
+  const [error, setError] = useState('');
 
-  const list = players.filter(
-    (p) => (sport === 'all' || p.sport === sport) && p.name.toLowerCase().includes(q.toLowerCase()),
-  );
+  useEffect(() => {
+    let active = true;
+    const timer = setTimeout(async () => {
+      if (!query.trim()) {
+        setPlayers([]);
+        setSearching(false);
+        return;
+      }
 
-  const friendBtn = (p) => {
-    switch (statusOf(p.id)) {
-      case 'friends': return <Btn to={`/chat/${p.id}`} variant="soft"><IoChatbubbleEllipsesOutline size={16} /> Message</Btn>;
-      case 'sent': return <Btn variant="soft" disabled>Request sent</Btn>;
-      case 'incoming': return <Btn onClick={() => acceptRequest(requestOf(p.id).id)}>Accept request</Btn>;
-      default: return <Btn variant="soft" onClick={() => sendRequest(p.id)}>Add friend</Btn>;
+      setSearching(true);
+      setError('');
+      try {
+        const users = await api(`/friends/search?q=${encodeURIComponent(query.trim())}`);
+        if (active) setPlayers(users);
+      } catch (searchError) {
+        if (active) setError(searchError.message);
+      } finally {
+        if (active) setSearching(false);
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  const act = async (userId, action) => {
+    setBusyId(userId);
+    setError('');
+    try {
+      await action();
+    } catch (actionError) {
+      setError(actionError.message);
+    } finally {
+      setBusyId('');
+    }
+  };
+
+  const friendButton = (player) => {
+    switch (statusOf(player.id)) {
+      case 'friends':
+        return <Btn to={`/chat/${player.id}`} variant="soft"><IoChatbubbleEllipsesOutline size={16} /> Message</Btn>;
+      case 'sent':
+        return <Btn variant="soft" disabled>Request sent</Btn>;
+      case 'incoming':
+        return <Btn disabled={busyId === player.id} onClick={() => act(player.id, () => acceptRequest(requestOf(player.id).id))}>Accept request</Btn>;
+      default:
+        return <Btn variant="soft" disabled={busyId === player.id} onClick={() => act(player.id, () => sendRequest(player.id))}>Add friend</Btn>;
     }
   };
 
   return (
     <Page
       title="Find players"
-      subtitle="Invite people to play with you"
-      actions={<div className="flex gap-2"><Btn to="/friends" variant="soft">Friends</Btn><Btn to="/players/new">Add player</Btn></div>}
+      subtitle="Search MOVE users and connect with them"
+      actions={<Btn to="/friends" variant="soft">Friends</Btn>}
     >
-      <input className={`${inputCls} mb-3`} placeholder="Search by name" value={q} onChange={(e) => setQ(e.target.value)} />
-      <SportChips value={sport} onChange={setSport} />
-      {list.length === 0 ? (
-        <Empty title="No players match" hint="Try a different sport or name." />
+      <input
+        className={`${inputCls} mb-4`}
+        placeholder="Search MOVE users by name"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
+      {(error || socialError) && <p role="alert" className="mb-3 text-sm font-semibold text-[#ba1a1a]">{error || socialError}</p>}
+      {searching ? (
+        <p className="py-6 text-center text-sm text-[#565e74]">Searching MOVE users…</p>
+      ) : players.length === 0 ? (
+        <Empty
+          title={query.trim() ? 'No users match your search' : 'Search for MOVE users'}
+          hint={query.trim() ? 'Try another name.' : 'Enter a name to find people to add.'}
+        />
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
-          {list.map((p) => (
-            <Card key={p.id} className="flex items-center justify-between gap-3">
+          {players.map((player) => (
+            <Card key={player.id} className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <Avatar name={p.name} src={p.avatar} />
+                <Avatar name={player.name} src={player.profilePicture} />
                 <div className="min-w-0">
-                  <h3 className="truncate font-bold">{p.name}</h3>
-                  <p className="truncate text-sm text-[#565e74]"><SportIcon sport={p.sport} /> {sportOf(p.sport).label} · {p.level} · {p.area}</p>
+                  <h3 className="truncate font-bold">{player.name}</h3>
+                  <p className="truncate text-sm text-[#565e74]">{player.bio || 'MOVE player'}</p>
                 </div>
               </div>
-              <div className="flex shrink-0 gap-2">
-                {friendBtn(p)}
-                <Btn variant={p.invited ? 'soft' : 'primary'} onClick={() => db.players.update(p.id, { invited: !p.invited })}>
-                  {p.invited ? 'Invited' : 'Invite'}
-                </Btn>
-              </div>
+              <div className="flex shrink-0 gap-2">{friendButton(player)}</div>
             </Card>
           ))}
         </div>

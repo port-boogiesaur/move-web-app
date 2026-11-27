@@ -23,6 +23,10 @@ model User {
   sentInvitations     Invitation[]          @relation("InvitationSender")
   receivedInvitations Invitation[]          @relation("InvitationReceiver")
   participations      ActivityParticipant[]
+  requestedFriendships Friendship[]         @relation("FriendshipRequester")
+  receivedFriendships Friendship[]          @relation("FriendshipAddressee")
+  lowFriendshipPairs  Friendship[]          @relation("FriendshipLowUser")
+  highFriendshipPairs Friendship[]          @relation("FriendshipHighUser")
 }
 
 // ─────────────────────────────────────────────
@@ -153,6 +157,30 @@ model Invitation {
 }
 
 // ─────────────────────────────────────────────
+// FRIENDSHIP
+// ─────────────────────────────────────────────
+
+model Friendship {
+  id           String           @id @default(uuid())
+  requesterId  String
+  addresseeId  String
+  lowUserId    String
+  highUserId   String
+  status       FriendshipStatus @default(PENDING)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  requester User @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+  lowUser   User @relation("FriendshipLowUser", fields: [lowUserId], references: [id], onDelete: Cascade)
+  highUser  User @relation("FriendshipHighUser", fields: [highUserId], references: [id], onDelete: Cascade)
+
+  @@unique([lowUserId, highUserId])
+  @@index([addresseeId, status])
+  @@index([requesterId, status])
+}
+
+// ─────────────────────────────────────────────
 // ENUMS
 // ─────────────────────────────────────────────
 
@@ -183,6 +211,12 @@ enum ParticipantStatus {
 }
 
 enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum FriendshipStatus {
   PENDING
   ACCEPTED
   DECLINED

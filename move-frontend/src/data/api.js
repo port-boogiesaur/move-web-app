@@ -7,7 +7,11 @@ const BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:5000/api').repla
 const TOKEN_KEY = 'move_db_token';
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
-export const setToken = (token) => (token ? localStorage.setItem(TOKEN_KEY, token) : localStorage.removeItem(TOKEN_KEY));
+export function setToken(token) {
+  if (token) localStorage.setItem(TOKEN_KEY, token);
+  else localStorage.removeItem(TOKEN_KEY);
+  window.dispatchEvent(new Event('move-social-change'));
+}
 
 export async function api(path, { method = 'GET', body } = {}) {
   const headers = { 'Content-Type': 'application/json' };

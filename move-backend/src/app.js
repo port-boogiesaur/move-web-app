@@ -10,6 +10,7 @@ const activityParticipantsRoutes = require("./routes/activityParticipants.routes
 const locationsRoutes = require("./routes/locations.routes");
 const invitationsRoutes = require("./routes/invitations.routes");
 const activityTypesRoutes = require("./routes/activityTypes.routes");
+const friendsRoutes = require("./routes/friends.routes");
 const authenticateToken = require("./middleware/auth.middleware");
 
 const app = express();
@@ -25,6 +26,7 @@ app.use("/api/activity-participants", activityParticipantsRoutes);
 app.use("/api/locations", locationsRoutes);
 app.use("/api/invitations", invitationsRoutes);
 app.use("/api/activity-types", activityTypesRoutes);
+app.use("/api/friends", friendsRoutes);
 app.use("/api/auth", authRoutes);
 
 app.get("/api/health", (req, res) => {
