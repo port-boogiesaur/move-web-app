@@ -1,0 +1,152 @@
+// Small shared pieces used by the new pages.
+import { Link, useNavigate } from 'react-router-dom';
+import { IoChevronBack, IoPeople, IoGridOutline } from 'react-icons/io5';
+import SportIcon from './SportIcon';
+import FavButton from './FavButton';
+import { RatingBadge } from './Stars';
+export { SportIcon };
+import { SPORTS } from '../data/seed';
+import { useSettings, useTable } from '../data/db';
+import { useSocial } from '../data/social';
+
+export const peso = (n) => `₱${Number(n).toLocaleString('en-PH')}`;
+export const fmtDate = (iso) =>
+  new Date(`${iso}T00:00:00`).toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' });
+export const fmtTime = (hhmm) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+};
+export const fmtDist = (km, unit = 'km') => (unit === 'mi' ? `${(km * 0.621371).toFixed(1)} mi` : `${Number(km).toFixed(Number.isInteger(km) ? 0 : 1)} km`);
+export const sportOf = (key) => SPORTS.find((s) => s.key === key) ?? { key, label: key, emoji: '🏅' };
+
+export const firstName = (n) => n.split(' ')[0];
+// joined names in matches are sometimes first names only, so match both
+export const isIn = (names, player) => names.includes(player.name) || names.includes(firstName(player.name));
+
+const usePlayers = () => useTable('players');
+
+export function Avatar({ name = '?', src, size = 40, className = '' }) {
+  const initials = name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+  return src ? (
+    <img src={src} alt={name} style={{ width: size, height: size }} className={`shrink-0 rounded-full object-cover ${className}`} />
+  ) : (
+    <span style={{ width: size, height: size, fontSize: size / 2.6 }} className={`flex shrink-0 items-center justify-center rounded-full bg-[#0b1c30] font-bold text-white ${className}`}>{initials}</span>
+  );
+}
+
+export function FriendsJoining({ names }) {
+  const { friendIds } = useSocial();
+  const going = usePlayers().filter((p) => friendIds.has(p.id) && isIn(names, p));
+  if (!going.length) return null;
+  return (
+    <p className="mt-2 rounded-xl bg-[#85f8c4]/50 px-3 py-2 text-sm font-semibold text-[#002114]">
+      <IoPeople className="mr-1.5 inline align-[-2px]" /> {going.map((f) => firstName(f.name)).join(', ')} {going.length > 1 ? 'are' : 'is'} joining
+    </p>
+  );
+}
+
+export const inputCls =
+  'w-full rounded-xl border border-[#bccac0] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#006948] focus:ring-2 focus:ring-[#85f8c4]';
+
+export function Page({ title, subtitle, back = true, actions, children }) {
+  const navigate = useNavigate();
+  return (
+    <div className="mx-auto w-full max-w-5xl px-4 pb-28 pt-6">
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2">
+          {back && (
+            <button onClick={() => navigate(-1)} aria-label="Go back" className="mt-0.5 rounded-full p-1.5 hover:bg-[#e5eeff]">
+              <IoChevronBack size={20} />
+            </button>
+          )}
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-[#0b1c30]">{title}</h1>
+            {subtitle && <p className="mt-0.5 text-sm text-[#565e74]">{subtitle}</p>}
+          </div>
+        </div>
+        {actions}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export function Card({ className = '', children }) {
+  return <div className={`rounded-2xl bg-white p-4 shadow-sm ring-1 ring-[#0b1c30]/5 transition-shadow hover:shadow-md ${className}`}>{children}</div>;
+}
+
+const variants = {
+  primary: 'bg-gradient-to-b from-[#00875f] to-[#006948] text-white hover:from-[#00a171] hover:to-[#00785a] shadow-[0_4px_14px_rgba(0,105,72,0.3)]',
+  soft: 'bg-[#e5eeff] text-[#0b1c30] hover:bg-[#d3e4fe]',
+  danger: 'bg-[#ffdad6] text-[#93000a] hover:bg-[#ffc9c3]',
+};
+
+export function Btn({ to, variant = 'primary', className = '', ...props }) {
+  const cls = `inline-flex items-center justify-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-bold transition active:scale-95 disabled:opacity-50 ${variants[variant]} ${className}`;
+  return to ? <Link to={to} className={cls} {...props} /> : <button className={cls} {...props} />;
+}
+
+export function SportChips({ value, onChange }) {
+  const items = [{ key: 'all', label: 'All' }, ...SPORTS];
+  return (
+    <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+      {items.map((s) => (
+        <button
+          key={s.key}
+          onClick={() => onChange(s.key)}
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition active:scale-95 ${
+            value === s.key ? 'bg-[#006948] text-white shadow-[0_4px_14px_rgba(0,105,72,0.3)]' : 'bg-white text-[#0b1c30] shadow-sm ring-1 ring-[#0b1c30]/5 hover:bg-[#e5eeff]'
+          }`}
+        >
+          {s.key === 'all' ? <IoGridOutline size={16} /> : <SportIcon sport={s.key} />} {s.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function Field({ label, children }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-bold text-[#3d4a42]">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+export function Empty({ title, hint, action }) {
+  return (
+    <Card className="py-10 text-center">
+      <p className="font-bold">{title}</p>
+      {hint && <p className="mt-1 text-sm text-[#565e74]">{hint}</p>}
+      {action && <div className="mt-4">{action}</div>}
+    </Card>
+  );
+}
+
+export function VenueCard({ venue, selected, onSelect }) {
+  const { unit } = useSettings();
+  return (
+    <Card className={`transition ${selected ? 'ring-2 ring-[#006948]' : ''}`}>
+      <div className="flex items-start justify-between gap-3" onClick={onSelect} role={onSelect ? 'button' : undefined}>
+        <div className="min-w-0">
+          <h3 className="truncate font-bold">{venue.name}</h3>
+          <p className="truncate text-sm text-[#565e74]">{venue.area}</p>
+          <div className="mt-0.5"><RatingBadge venueId={venue.id} /></div>
+          <p className="mt-1 text-sm">
+            <span className="inline-flex items-center gap-1.5 align-middle">{venue.sports.map((s) => <SportIcon key={s} sport={s} size={18} />)}</span> · {venue.courts ? `${venue.courts} courts · ` : ''}{fmtDist(venue.distanceKm, unit)}
+          </p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-lg font-extrabold text-[#006948]">{peso(venue.price)}</p>
+          <p className="text-xs text-[#565e74]">per court / hr</p>
+          <div className="mt-2 flex justify-end"><FavButton venueId={venue.id} /></div>
+        </div>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Btn to={`/venue/${venue.id}`} variant="soft">Details</Btn>
+        <Btn to={`/book/${venue.id}`}>Book court</Btn>
+      </div>
+    </Card>
+  );
+}
