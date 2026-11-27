@@ -10,7 +10,7 @@ export default function Layout() {
   const { pathname } = useLocation();
   if (!user) return <Navigate to="/login" replace />; // not logged in -> login page
   return (
-    <div className="min-h-screen text-[#0b1c30]">
+    <div className="relative z-10 min-h-screen text-[#0b1c30]">
       <Header />
       <main key={pathname.split('/')[1]} className="page-enter">
         <Outlet />

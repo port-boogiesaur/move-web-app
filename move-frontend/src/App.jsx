@@ -20,6 +20,7 @@ import Saved from './pages/Saved';
 import Leaderboard from './pages/Leaderboard';
 import NotFound from './pages/NotFound';
 import Auth from './pages/Auth';
+import AmbientBackground from './components/AmbientBackground';
 import { initDb } from './data/db';
 import { dropStaleSession, syncFromApi } from './data/api';
 
@@ -61,5 +62,17 @@ export default function App() {
     </Routes>
   );
 
-  return alreadyInRouter ? routes : <BrowserRouter>{routes}</BrowserRouter>;
+  return alreadyInRouter
+    ? (
+      <>
+        <AmbientBackground />
+        {routes}
+      </>
+    )
+    : (
+      <BrowserRouter>
+        <AmbientBackground />
+        {routes}
+      </BrowserRouter>
+    );
 }
