@@ -42,70 +42,100 @@ async function main() {
   // LOCATIONS
   // ─────────────────────────────────────────
 
-  const basketballCourt = await prisma.location.create({
-    data: {
-      name: "MOVE Sample Sports Center",
-      description: "Sample sports facility for MOVE development.",
-      address: "Cebu City, Cebu",
-      latitude: 10.3157,
-      longitude: 123.8854,
-      type: "FACILITY",
+  const existingBasketballCourt = await prisma.location.findFirst({
+    where: { name: "MOVE Sample Sports Center" },
+  });
+  let basketballCourt = existingBasketballCourt;
+  if (existingBasketballCourt) {
+    console.log("Skipped existing location:", existingBasketballCourt.name);
+  } else {
+    basketballCourt = await prisma.location.create({
+      data: {
+        name: "MOVE Sample Sports Center",
+        description: "Sample sports facility for MOVE development.",
+        address: "Cebu City, Cebu",
+        latitude: 10.3157,
+        longitude: 123.8854,
+        type: "FACILITY",
 
-      facilityDetails: {
-        create: {
-          bookingUrl: "https://example.com/book",
-          rates: "₱500/hour",
-          amenities: "Parking, Restrooms, Drinking Water",
-          contactInfo: "Sample facility contact",
+        facilityDetails: {
+          create: {
+            bookingUrl: "https://example.com/book",
+            rates: "₱500/hour",
+            amenities: "Parking, Restrooms, Drinking Water",
+            contactInfo: "Sample facility contact",
+          },
         },
       },
-    },
+    });
+  }
+
+  const existingBadmintonCourt = await prisma.location.findFirst({
+    where: { name: "MOVE Sample Badminton Center" },
   });
+  let badmintonCourt = existingBadmintonCourt;
+  if (existingBadmintonCourt) {
+    console.log("Skipped existing location:", existingBadmintonCourt.name);
+  } else {
+    badmintonCourt = await prisma.location.create({
+      data: {
+        name: "MOVE Sample Badminton Center",
+        description: "Sample badminton facility for MOVE development.",
+        address: "Cebu City, Cebu",
+        latitude: 10.3165,
+        longitude: 123.8848,
+        type: "FACILITY",
 
-  const badmintonCourt = await prisma.location.create({
-    data: {
-      name: "MOVE Sample Badminton Center",
-      description: "Sample badminton facility for MOVE development.",
-      address: "Cebu City, Cebu",
-      latitude: 10.3165,
-      longitude: 123.8848,
-      type: "FACILITY",
-
-      facilityDetails: {
-        create: {
-          bookingUrl: "https://example.com/book",
-          rates: "₱300/hour",
-          amenities: "Parking, Restrooms",
-          contactInfo: "Sample facility contact",
+        facilityDetails: {
+          create: {
+            bookingUrl: "https://example.com/book",
+            rates: "₱300/hour",
+            amenities: "Parking, Restrooms",
+            contactInfo: "Sample facility contact",
+          },
         },
       },
-    },
-  });
+    });
+  }
 
-  await prisma.location.create({
-    data: {
-      name: "MOVE Sample Hiking Trail",
-      description: "Sample outdoor location for MOVE development.",
-      address: "Cebu City, Cebu",
-      latitude: 10.35,
-      longitude: 123.88,
-      type: "OUTDOOR",
-    },
+  const existingHikingTrail = await prisma.location.findFirst({
+    where: { name: "MOVE Sample Hiking Trail" },
   });
+  if (existingHikingTrail) {
+    console.log("Skipped existing location:", existingHikingTrail.name);
+  } else {
+    await prisma.location.create({
+      data: {
+        name: "MOVE Sample Hiking Trail",
+        description: "Sample outdoor location for MOVE development.",
+        address: "Cebu City, Cebu",
+        latitude: 10.35,
+        longitude: 123.88,
+        type: "OUTDOOR",
+      },
+    });
+  }
 
-  await prisma.location.create({
-    data: {
-      name: "MOVE Sample Running Route",
-      description: "Sample outdoor running location for MOVE development.",
-      address: "Cebu City, Cebu",
-      latitude: 10.32,
-      longitude: 123.89,
-      type: "OUTDOOR",
-    },
+  const existingRunningRoute = await prisma.location.findFirst({
+    where: { name: "MOVE Sample Running Route" },
   });
+  if (existingRunningRoute) {
+    console.log("Skipped existing location:", existingRunningRoute.name);
+  } else {
+    await prisma.location.create({
+      data: {
+        name: "MOVE Sample Running Route",
+        description: "Sample outdoor running location for MOVE development.",
+        address: "Cebu City, Cebu",
+        latitude: 10.32,
+        longitude: 123.89,
+        type: "OUTDOOR",
+      },
+    });
+  }
 
   console.log("Seed completed!");
-  console.log("Created facilities:", basketballCourt.name, badmintonCourt.name);
+  console.log("Sample facilities:", basketballCourt.name, badmintonCourt.name);
 }
 
 main()
